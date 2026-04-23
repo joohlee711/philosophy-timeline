@@ -76,6 +76,7 @@ export function renderTimeline(
   let currentX = xScale.copy();
   let selected: string | null = null;
   let dims = { width: 0, height: 0, innerW: 0, innerH: 0 };
+  let laidOut: LaidOutPhilosopher[] = [];
 
   const zoom = d3
     .zoom<SVGSVGElement, unknown>()
@@ -180,8 +181,6 @@ export function renderTimeline(
       };
     });
   }
-
-  let laidOut: LaidOutPhilosopher[] = [];
 
   // ----- Static layers (axis, hemispheres, tradition labels) -----
 
