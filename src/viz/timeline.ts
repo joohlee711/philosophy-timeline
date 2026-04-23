@@ -450,6 +450,37 @@ export function renderTimeline(
             })
             .join("")}</div>`;
 
+    const quotesMarkup = (qs: Philosopher["quotes"]) =>
+      !qs || qs.length === 0
+        ? ""
+        : `<div class="sp-section">
+            <div class="sp-section-title">명언</div>
+            <div class="sp-quote-list">${qs
+              .map(
+                (q) => `<blockquote class="sp-quote">
+                  <p class="sp-quote-text">${escapeHtml(q.text)}</p>
+                  ${q.source ? `<cite class="sp-quote-source">— ${escapeHtml(q.source)}</cite>` : ""}
+                </blockquote>`,
+              )
+              .join("")}</div>
+          </div>`;
+
+    const eventsMarkup = (evs: Philosopher["events"]) =>
+      !evs || evs.length === 0
+        ? ""
+        : `<div class="sp-section">
+            <div class="sp-section-title">주요 사건</div>
+            <ol class="sp-event-list">${[...evs]
+              .sort((a, b) => a.year - b.year)
+              .map(
+                (e) => `<li class="sp-event">
+                  <span class="sp-event-year">${formatYear(e.year)}</span>
+                  <span class="sp-event-text">${escapeHtml(e.text)}</span>
+                </li>`,
+              )
+              .join("")}</ol>
+          </div>`;
+
     sidePanelBody.innerHTML = `
       <div class="sp-name">${escapeHtml(p.nameKo)}</div>
       <div class="sp-name-en">${escapeHtml(p.name)}</div>
@@ -459,6 +490,9 @@ export function renderTimeline(
         ${formatYear(p.birth)} – ${formatYear(p.death)}
       </div>
       <p class="sp-desc">${escapeHtml(p.desc)}</p>
+
+      ${quotesMarkup(p.quotes)}
+      ${eventsMarkup(p.events)}
 
       <div class="sp-section">
         <div class="sp-section-title">받은 영향</div>

@@ -391,3 +391,62 @@ body {
   font-size: 0.85rem;
   font-style: italic;
 }
+
+.sp-quote-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.sp-quote {
+  margin: 0;
+  padding: 0.35rem 0 0.35rem 0.85rem;
+  border-left: 2px solid var(--divider);
+  font-family: var(--serif);
+}
+
+.sp-quote-text {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--fg);
+}
+
+.sp-quote-source {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  color: var(--fg-faint);
+  font-style: normal;
+}
+
+.sp-event-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sp-event {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr;
+  gap: 0.55rem;
+  align-items: baseline;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.sp-event-year {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.sp-event-text {
+  color: var(--fg);
+}

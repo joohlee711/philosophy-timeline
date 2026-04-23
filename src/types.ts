@@ -8,6 +8,16 @@ export interface Tradition {
   color: string;
 }
 
+export interface Quote {
+  text: string;
+  source?: string;
+}
+
+export interface LifeEvent {
+  year: number;
+  text: string;
+}
+
 export interface Philosopher {
   id: string;
   name: string;
@@ -18,6 +28,8 @@ export interface Philosopher {
   tradition: string;
   desc: string;
   influences: string[];
+  quotes?: Quote[];
+  events?: LifeEvent[];
 }
 
 export interface Dataset {
