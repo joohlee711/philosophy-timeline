@@ -3,6 +3,8 @@ import type {
   Dataset,
   LaidOutPhilosopher,
   Philosopher,
+  Region,
+  Topic,
   Tradition,
 } from "../types";
 
@@ -15,6 +17,15 @@ const X_DOMAIN: [number, number] = [-700, 2050];
 const DOT_R = 5;
 const DOT_R_HOVER = 7;
 const DOT_R_FOCUS = 8;
+
+const TOPICS: Topic[] = [
+  { id: "metaphysics", labelKo: "형이상학 · 존재론", color: "#6b8cae" },
+  { id: "epistemology", labelKo: "인식론", color: "#e67e22" },
+  { id: "ethics", labelKo: "윤리 · 실천", color: "#b8860b" },
+  { id: "politics", labelKo: "정치 · 사회", color: "#8b3a3a" },
+  { id: "language", labelKo: "언어 · 논리", color: "#34495e" },
+  { id: "religion", labelKo: "종교 · 구원", color: "#8e4ec6" },
+];
 
 export function renderTimeline(
   container: HTMLElement,
@@ -66,10 +77,11 @@ export function renderTimeline(
   const gXAxis = gRoot.append("g").attr("class", "axis axis-x");
   const gOverlay = gRoot.append("g").attr("class", "overlay-layer");
 
+  const gHulls = gPlot.append("g").attr("class", "hulls");
   const gEdges = gPlot.append("g").attr("class", "edges");
   const gLives = gPlot.append("g").attr("class", "lives");
   const gDots = gPlot.append("g").attr("class", "dots");
-  const gLabels = gPlot.append("g").attr("class", "labels");
+  const gTopicLabels = gPlot.append("g").attr("class", "topic-labels");
 
   const xScale = d3.scaleLinear().domain(X_DOMAIN);
 
@@ -188,7 +200,6 @@ export function renderTimeline(
   function drawStatic() {
     gBackground.selectAll("*").remove();
     gOverlay.selectAll("*").remove();
-    gLabels.selectAll("*").remove();
 
     // Middle horizontal rule (east/west divider).
     gBackground
@@ -276,6 +287,9 @@ export function renderTimeline(
       .attr("transform", `translate(0, ${dims.innerH})`)
       .call(axis as any);
 
+    // Topic clusters: convex hull per (primary-topic × region).
+    drawClusters();
+
     // Life segments (thin line from birth to death).
     const lives = gLives
       .selectAll<SVGLineElement, LaidOutPhilosopher>("line.philosopher-life")
@@ -335,6 +349,131 @@ export function renderTimeline(
     }
 
     applyDimming(dotSel);
+  }
+
+  function drawClusters() {
+    interface Cluster {
+      key: string;
+      topic: Topic;
+      hullPath: string;
+      labelX: number;
+      labelY: number;
+    }
+    const clusters: Cluster[] = [];
+    const regions: Region[] = ["west", "east"];
+
+    for (const t of TOPICS) {
+      for (const region of regions) {
+        const members = laidOut.filter(
+          (p) =>
+            p.region === region && !!p.topics && p.topics[0] === t.id,
+        );
+        if (members.length === 0) continue;
+        const pts = members.map(
+          (p) => [p.x, p.y] as [number, number],
+        );
+
+        let hullPath = "";
+        if (pts.length >= 3) {
+          const hull = d3.polygonHull(pts);
+          if (hull) {
+            const cx = d3.mean(hull, (d) => d[0]) ?? 0;
+            const cy = d3.mean(hull, (d) => d[1]) ?? 0;
+            const padding = 26;
+            const padded = hull.map(([x, y]) => {
+              const dx = x - cx;
+              const dy = y - cy;
+              const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+              return [
+                x + (dx / dist) * padding,
+                y + (dy / dist) * padding,
+              ] as [number, number];
+            });
+            const line = d3
+              .line<[number, number]>()
+              .x((d) => d[0])
+              .y((d) => d[1])
+              .curve(d3.curveCatmullRomClosed.alpha(0.85));
+            hullPath = line(padded) ?? "";
+          }
+        } else if (pts.length === 2) {
+          const [a, b] = pts;
+          const mx = (a[0] + b[0]) / 2;
+          const my = (a[1] + b[1]) / 2;
+          const dx = b[0] - a[0];
+          const dy = b[1] - a[1];
+          const halfLen = Math.sqrt(dx * dx + dy * dy) / 2;
+          const theta = Math.atan2(dy, dx);
+          const rx = halfLen + 26;
+          const ry = 22;
+          const steps = 32;
+          const pts2: [number, number][] = [];
+          for (let i = 0; i < steps; i++) {
+            const th = (i / steps) * 2 * Math.PI;
+            const ex = Math.cos(th) * rx;
+            const ey = Math.sin(th) * ry;
+            const rotX = ex * Math.cos(theta) - ey * Math.sin(theta);
+            const rotY = ex * Math.sin(theta) + ey * Math.cos(theta);
+            pts2.push([mx + rotX, my + rotY]);
+          }
+          const line = d3
+            .line<[number, number]>()
+            .x((d) => d[0])
+            .y((d) => d[1])
+            .curve(d3.curveCatmullRomClosed.alpha(0.85));
+          hullPath = line(pts2) ?? "";
+        } else {
+          const [x, y] = pts[0];
+          const r = 22;
+          hullPath = `M ${x + r},${y} A ${r},${r} 0 1,1 ${x - r},${y} A ${r},${r} 0 1,1 ${x + r},${y} Z`;
+        }
+
+        const labelX = d3.mean(pts, (d) => d[0]) ?? 0;
+        const labelY =
+          region === "west"
+            ? Math.min(...pts.map((p) => p[1])) - 14
+            : Math.max(...pts.map((p) => p[1])) + 26;
+
+        clusters.push({
+          key: `${t.id}-${region}`,
+          topic: t,
+          hullPath,
+          labelX,
+          labelY,
+        });
+      }
+    }
+
+    gHulls
+      .selectAll<SVGPathElement, Cluster>("path.cluster-hull")
+      .data(clusters, (d) => d.key)
+      .join(
+        (enter) => enter.append("path").attr("class", "cluster-hull"),
+        (update) => update,
+        (exit) => exit.remove(),
+      )
+      .attr("d", (d) => d.hullPath)
+      .attr("fill", (d) => d.topic.color)
+      .attr("stroke", (d) => d.topic.color)
+      .classed("dimmed-soft", () => selected !== null);
+
+    gTopicLabels
+      .selectAll<SVGTextElement, Cluster>("text.topic-label")
+      .data(clusters, (d) => d.key)
+      .join(
+        (enter) =>
+          enter
+            .append("text")
+            .attr("class", "topic-label")
+            .attr("text-anchor", "middle"),
+        (update) => update,
+        (exit) => exit.remove(),
+      )
+      .attr("x", (d) => d.labelX)
+      .attr("y", (d) => d.labelY)
+      .attr("fill", (d) => d.topic.color)
+      .text((d) => d.topic.labelKo)
+      .classed("dimmed-soft", () => selected !== null);
   }
 
   function applyDimming(

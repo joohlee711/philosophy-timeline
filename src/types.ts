@@ -28,8 +28,15 @@ export interface Philosopher {
   tradition: string;
   desc: string;
   influences: string[];
+  topics?: string[];
   quotes?: Quote[];
   events?: LifeEvent[];
+}
+
+export interface Topic {
+  id: string;
+  labelKo: string;
+  color: string;
 }
 
 export interface Dataset {
