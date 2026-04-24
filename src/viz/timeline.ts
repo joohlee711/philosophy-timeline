@@ -141,9 +141,10 @@ export function renderTimeline(
         [innerW, innerH],
       ]);
 
-    // Reset current X rescale to the fresh xScale (on resize, drop zoom state).
-    currentX = xScale.copy();
-    svg.call(zoom.transform as any, d3.zoomIdentity);
+    // Preserve current zoom transform across resizes so panel-open-triggered
+    // resizes don't reset user's pan/zoom.
+    const t = d3.zoomTransform(svg.node() as SVGSVGElement);
+    currentX = t.rescaleX(xScale);
 
     drawStatic();
     redraw();
@@ -414,6 +415,7 @@ export function renderTimeline(
     renderSidePanel(id);
     sidePanel.classList.add("open");
     sidePanel.setAttribute("aria-hidden", "false");
+    document.body.classList.add("panel-open");
     redraw();
   }
 
@@ -421,6 +423,7 @@ export function renderTimeline(
     selected = null;
     sidePanel.classList.remove("open");
     sidePanel.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("panel-open");
     redraw();
   }
 

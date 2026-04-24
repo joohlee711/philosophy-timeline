@@ -134,6 +134,11 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   position: relative;
+  transition: padding-right 0.22s ease;
+}
+
+body.panel-open #app {
+  padding-right: min(360px, 92vw);
 }
 
 #app svg {
